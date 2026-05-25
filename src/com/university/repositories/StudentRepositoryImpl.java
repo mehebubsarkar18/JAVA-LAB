@@ -106,11 +106,12 @@ public class StudentRepositoryImpl implements StudentRepository {
     private void saveStudents() {
         try (PrintWriter writer = new PrintWriter(new FileWriter(DATA_FILE))) {
             for (Student s : students) {
-                writer.println(String.format("%d,%s,%d,%s,%s,%s,%s,%d",
+                writer.println(String.format("%d,%s,%d,%s,%.2f,%s,%s,%s,%d",
                     s.getStudentId(),
                     s.getName(),
                     s.getAge(),
                     s.getGender(),
+                    s.getHsPercentage(),
                     s.getCollegeName(),
                     s.getBranchName(),
                     s.getSemester(),
@@ -133,17 +134,25 @@ public class StudentRepositoryImpl implements StudentRepository {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length == 8) {
+                if (parts.length == 8 || parts.length == 9) {
                     int id = Integer.parseInt(parts[0]);
                     String name = parts[1];
                     int age = Integer.parseInt(parts[2]);
                     String gender = parts[3];
-                    String college = parts[4];
-                    String branch = parts[5];
-                    String semester = parts[6];
-                    int admissionNo = Integer.parseInt(parts[7]);
+                    double hsPercentage = 0.0;
+                    int offset = 0;
 
-                    Student s = new Student(id, name, age, gender, college, branch, semester, admissionNo);
+                    if (parts.length == 9) {
+                        hsPercentage = Double.parseDouble(parts[4]);
+                        offset = 1;
+                    }
+
+                    String college = parts[4 + offset];
+                    String branch = parts[5 + offset];
+                    String semester = parts[6 + offset];
+                    int admissionNo = Integer.parseInt(parts[7 + offset]);
+
+                    Student s = new Student(id, name, age, gender, hsPercentage, college, branch, semester, admissionNo);
                     students.add(s);
                 }
             }

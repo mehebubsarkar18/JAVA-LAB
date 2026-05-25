@@ -13,6 +13,7 @@ public class Student implements Displayable, Searchable {
     private String name;
     private int age;
     private String gender;
+    private double hsPercentage;
     private String collegeName;
     private String branchName;
     private String semester;
@@ -35,10 +36,16 @@ public class Student implements Displayable, Searchable {
      */
     public Student(int studentId, String name, int age, String gender, 
                    String collegeName, String branchName, String semester, int admissionNumber) {
+        this(studentId, name, age, gender, 0.0, collegeName, branchName, semester, admissionNumber);
+    }
+
+    public Student(int studentId, String name, int age, String gender, double hsPercentage,
+                   String collegeName, String branchName, String semester, int admissionNumber) {
         this.studentId = studentId;
         this.name = name;
         this.age = age;
         this.gender = gender;
+        this.hsPercentage = hsPercentage;
         this.collegeName = collegeName;
         this.branchName = branchName;
         this.semester = semester;
@@ -58,10 +65,16 @@ public class Student implements Displayable, Searchable {
      */
     public Student(int studentId, String name, int age, String gender, 
                    String collegeName, String branchName, String semester) {
+        this(studentId, name, age, gender, 0.0, collegeName, branchName, semester);
+    }
+
+    public Student(int studentId, String name, int age, String gender, double hsPercentage,
+                   String collegeName, String branchName, String semester) {
         this.studentId = studentId;
         this.name = name;
         this.age = age;
         this.gender = gender;
+        this.hsPercentage = hsPercentage;
         this.collegeName = collegeName;
         this.branchName = branchName;
         this.semester = semester;
@@ -83,6 +96,10 @@ public class Student implements Displayable, Searchable {
     
     public String getGender() {
         return gender;
+    }
+
+    public double getHsPercentage() {
+        return hsPercentage;
     }
     
     public String getCollegeName() {
@@ -112,6 +129,10 @@ public class Student implements Displayable, Searchable {
     
     public void setGender(String gender) {
         this.gender = gender;
+    }
+
+    public void setHsPercentage(double hsPercentage) {
+        this.hsPercentage = hsPercentage;
     }
     
     public void setCollegeName(String collegeName) {
@@ -147,6 +168,9 @@ public class Student implements Displayable, Searchable {
         System.out.println("Name: " + name);
         System.out.println("Age: " + age);
         System.out.println("Gender: " + gender);
+        if (hsPercentage > 0) {
+            System.out.println("HS Percentage: " + hsPercentage);
+        }
         System.out.println("College: " + collegeName);
         System.out.println("Branch: " + branchName);
         System.out.println("Semester: " + semester);
@@ -158,7 +182,8 @@ public class Student implements Displayable, Searchable {
      */
     @Override
     public String toString() {
-        return studentId + " | " + name + " | " + age + " | " + gender + 
+        return studentId + " | " + name + " | " + age + " | " + gender +
+               " | " + hsPercentage +
                " | " + collegeName + " | " + branchName + " | " + semester;
     }
 }

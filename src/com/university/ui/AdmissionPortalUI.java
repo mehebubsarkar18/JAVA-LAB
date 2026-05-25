@@ -5,7 +5,6 @@ import com.university.models.Branch;
 import com.university.models.Semester;
 import com.university.models.Student;
 import com.university.services.AdmissionService;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
@@ -28,17 +27,26 @@ import java.util.regex.Pattern;
 public class AdmissionPortalUI extends JFrame {
     private final AdmissionService admissionService;
     private final List<College> colleges;
+    private JTabbedPane mainTabs;
 
     // Form fields
     private JTextField idField;
     private JTextField nameField;
     private JTextField ageField;
+    private JTextField hsPercentageField;
     private JComboBox<String> genderComboBox;
     private JComboBox<String> collegeComboBox;
     private JComboBox<String> branchComboBox;
     private JComboBox<String> semesterComboBox;
     private JTextArea admissionResultArea;
     private JLabel branchInfoLabel;
+    private CardLayout admissionStepLayout;
+    private JPanel admissionStepPanel;
+    private JLabel admissionStepTitleLabel;
+    private JLabel admissionSelectionLabel;
+    private DefaultTableModel admissionBranchTableModel;
+    private JTable admissionBranchTable;
+    private JScrollPane admissionResultScrollPane;
 
     // Search fields
     private JTextField searchIdField;
@@ -79,19 +87,79 @@ public class AdmissionPortalUI extends JFrame {
         setLocationRelativeTo(null);
 
         // Switch to SCROLL_TAB_LAYOUT to prevent tabs from wrapping or 'hiding' each other
-        JTabbedPane tabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
-        styleTabbedPane(tabs);
+        mainTabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
+        styleTabbedPane(mainTabs);
 
-        tabs.addTab("New Admission", createAdmissionPanel());
-        tabs.addTab("All Students", createAllStudentsPanel());
-        tabs.addTab("View Student", createViewStudentPanel());
-        tabs.addTab("Branch Capacity", createBranchCapacityPanel());
+        mainTabs.addTab("Dashboard", createDashboardPanel());
+        mainTabs.addTab("New Admission", createAdmissionPanel());
+        mainTabs.addTab("All Students", createAllStudentsPanel());
+        mainTabs.addTab("View Student", createViewStudentPanel());
+        mainTabs.addTab("Branch Capacity", createBranchCapacityPanel());
+        mainTabs.setSelectedIndex(0);
 
-        add(tabs);
+        add(mainTabs);
         
         // Initial data load
         refreshStudentsTable();
         handleBranchCapacity();
+    }
+
+    private JPanel createDashboardPanel() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBorder(new EmptyBorder(35, 35, 35, 35));
+
+        JLabel titleLabel = new JLabel("University Admission Portal", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        JLabel subtitleLabel = new JLabel("Choose an option to continue", SwingConstants.CENTER);
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 17));
+        subtitleLabel.setForeground(TEXT_COLOR);
+
+        JPanel headerPanel = new JPanel(new GridLayout(2, 1, 0, 8));
+        headerPanel.setOpaque(false);
+        headerPanel.add(titleLabel);
+        headerPanel.add(subtitleLabel);
+
+        JPanel optionPanel = new JPanel(new GridLayout(2, 2, 22, 22));
+        optionPanel.setOpaque(false);
+        optionPanel.setBorder(new EmptyBorder(30, 120, 30, 120));
+
+        optionPanel.add(createDashboardOption("New Admission", "Register a new student", 1));
+        optionPanel.add(createDashboardOption("All Students", "View and manage admitted students", 2));
+        optionPanel.add(createDashboardOption("View Student", "Search one student by ID", 3));
+        optionPanel.add(createDashboardOption("Branch Capacity", "Check available seats", 4));
+
+        panel.add(headerPanel, BorderLayout.NORTH);
+        panel.add(optionPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JButton createDashboardOption(String title, String description, int tabIndex) {
+        JButton button = new JButton("<html><center><b>" + title + "</b><br><span style='font-size:11px'>" + description + "</span></center></html>");
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        button.setBackground(Color.WHITE);
+        button.setForeground(TEXT_COLOR);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(25, 25, 25, 25));
+        button.setUI(new BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(c.getBackground());
+                g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 18, 18);
+                g2.setColor(new Color(210, 225, 245));
+                g2.drawRoundRect(1, 1, c.getWidth() - 3, c.getHeight() - 3, 18, 18);
+                super.paint(g2, c);
+                g2.dispose();
+            }
+        });
+        button.addActionListener(e -> mainTabs.setSelectedIndex(tabIndex));
+        return button;
     }
 
     private void applyGlobalStyles() {
@@ -203,63 +271,168 @@ public class AdmissionPortalUI extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(20, 20));
         mainPanel.setBorder(new EmptyBorder(25, 25, 25, 25));
 
-        // Form Container to center the form
-        JPanel centerWrapper = new JPanel(new GridBagLayout());
-        centerWrapper.setOpaque(false);
-        
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setPreferredSize(new Dimension(550, 500));
-        formPanel.setBackground(Color.WHITE);
-        TitledBorder border = BorderFactory.createTitledBorder("Admission Registration Form");
-        border.setTitleFont(new Font("Segoe UI", Font.BOLD, 18));
-        border.setTitleColor(PRIMARY_COLOR);
-        formPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 230, 240), 2, true),
-            new EmptyBorder(25, 35, 25, 35)
-        ));
+        collegeComboBox = new JComboBox<>(getCollegeNames());
+        branchComboBox = new JComboBox<>();
+        semesterComboBox = new JComboBox<>(getSemesterNames());
+        idField = new JTextField(15);
+        nameField = new JTextField(20);
+        ageField = new JTextField(15);
+        hsPercentageField = new JTextField(15);
+        genderComboBox = new JComboBox<>(new String[]{"Select Gender", "Male", "Female", "Other"});
+        branchInfoLabel = new JLabel(" ");
+        branchInfoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
 
+        collegeComboBox.addActionListener(e -> {
+            updateBranchCombo();
+            updateAdmissionBranchTable();
+        });
+        branchComboBox.addActionListener(e -> updateBranchInfo());
+        semesterComboBox.addActionListener(e -> {
+            updateBranchInfo();
+            updateAdmissionBranchTable();
+        });
+        updateBranchCombo();
+
+        admissionStepTitleLabel = new JLabel("Step 1: Select College", SwingConstants.CENTER);
+        admissionStepTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        admissionStepTitleLabel.setForeground(PRIMARY_COLOR);
+
+        admissionSelectionLabel = new JLabel(" ", SwingConstants.CENTER);
+        admissionSelectionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        admissionSelectionLabel.setForeground(TEXT_COLOR);
+
+        JPanel headerPanel = new JPanel(new GridLayout(2, 1, 0, 5));
+        headerPanel.setOpaque(false);
+        headerPanel.add(admissionStepTitleLabel);
+        headerPanel.add(admissionSelectionLabel);
+
+        admissionStepLayout = new CardLayout();
+        admissionStepPanel = new JPanel(admissionStepLayout);
+        admissionStepPanel.setOpaque(false);
+        admissionStepPanel.add(createCollegeSelectionStep(), "college");
+        admissionStepPanel.add(createSemesterSelectionStep(), "semester");
+        admissionStepPanel.add(createBranchSelectionStep(), "branch");
+        admissionStepPanel.add(createStudentDetailsStep(), "details");
+
+        admissionResultArea = new JTextArea(6, 0);
+        admissionResultArea.setEditable(false);
+        admissionResultArea.setBackground(new Color(252, 252, 252));
+        admissionResultScrollPane = new JScrollPane(admissionResultArea);
+        admissionResultScrollPane.setBorder(BorderFactory.createTitledBorder("Status & Log"));
+        admissionResultScrollPane.setVisible(false);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+        mainPanel.add(admissionStepPanel, BorderLayout.CENTER);
+        mainPanel.add(admissionResultScrollPane, BorderLayout.SOUTH);
+
+        return mainPanel;
+    }
+
+    private JPanel createCollegeSelectionStep() {
+        JPanel stepPanel = createWizardCard();
+        stepPanel.add(new JLabel("Select College:"), createGbc(0, 0, 0.2));
+        stepPanel.add(collegeComboBox, createGbc(1, 0, 0.8));
+
+        JButton nextButton = new JButton("Next");
+        styleButton(nextButton);
+        nextButton.addActionListener(e -> {
+            updateBranchCombo();
+            showAdmissionStep("semester", "Step 2: Select Semester", getSelectedCollegeName());
+        });
+        stepPanel.add(nextButton, createButtonGbc(1));
+        return wrapWizardCard(stepPanel);
+    }
+
+    private JPanel createBranchSelectionStep() {
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(20, 60, 20, 60));
+
+        admissionBranchTableModel = new DefaultTableModel(
+                new String[]{"Branch", "Free Seats", "Total Capacity"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        admissionBranchTable = new JTable(admissionBranchTableModel);
+        styleTable(admissionBranchTable);
+        panel.add(new JScrollPane(admissionBranchTable), BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        bottomPanel.setOpaque(false);
+        JButton backButton = new JButton("Back");
+        JButton nextButton = new JButton("Next");
+        styleButton(backButton);
+        styleButton(nextButton);
+        bottomPanel.add(new JLabel("Choose Branch:"));
+        bottomPanel.add(branchComboBox);
+        bottomPanel.add(branchInfoLabel);
+        bottomPanel.add(backButton);
+        bottomPanel.add(nextButton);
+
+        backButton.addActionListener(e -> showAdmissionStep("semester", "Step 2: Select Semester", getSelectedCollegeName()));
+        nextButton.addActionListener(e -> showAdmissionStep("details", "Step 4: Student Details",
+                getSelectedCollegeName() + " | " + semesterComboBox.getSelectedItem() + " | " + getSelectedBranchName()));
+
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+        updateAdmissionBranchTable();
+        return panel;
+    }
+
+    private JPanel createSemesterSelectionStep() {
+        JPanel stepPanel = createWizardCard();
+        stepPanel.add(new JLabel("Admission Semester:"), createGbc(0, 0, 0.2));
+        stepPanel.add(semesterComboBox, createGbc(1, 0, 0.8));
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        buttons.setOpaque(false);
+        JButton backButton = new JButton("Back");
+        JButton nextButton = new JButton("Next");
+        styleButton(backButton);
+        styleButton(nextButton);
+        buttons.add(backButton);
+        buttons.add(nextButton);
+
+        backButton.addActionListener(e -> showAdmissionStep("college", "Step 1: Select College", " "));
+        nextButton.addActionListener(e -> {
+            updateAdmissionBranchTable();
+            showAdmissionStep("branch", "Step 3: Select Branch",
+                    getSelectedCollegeName() + " | " + semesterComboBox.getSelectedItem());
+        });
+
+        GridBagConstraints gbc = createButtonGbc(1);
+        stepPanel.add(buttons, gbc);
+        return wrapWizardCard(stepPanel);
+    }
+
+    private JPanel createStudentDetailsStep() {
+        JPanel formPanel = createWizardCard();
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(12, 12, 12, 12);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        idField = new JTextField(15);
-        nameField = new JTextField(20);
-        ageField = new JTextField(15);
-        genderComboBox = new JComboBox<>(new String[]{"Male", "Female", "Other"});
-        collegeComboBox = new JComboBox<>(getCollegeNames());
-        branchComboBox = new JComboBox<>();
-        semesterComboBox = new JComboBox<>(getSemesterNames());
-        branchInfoLabel = new JLabel(" ");
-        branchInfoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
-
-        collegeComboBox.addActionListener(e -> updateBranchCombo());
-        branchComboBox.addActionListener(e -> updateBranchInfo());
-        semesterComboBox.addActionListener(e -> updateBranchInfo());
-        updateBranchCombo();
 
         int row = 0;
         addFormField(formPanel, "Student ID:", idField, gbc, row++);
         addFormField(formPanel, "Full Name:", nameField, gbc, row++);
         addFormField(formPanel, "Age:", ageField, gbc, row++);
         addFormField(formPanel, "Gender:", genderComboBox, gbc, row++);
-        addFormField(formPanel, "College:", collegeComboBox, gbc, row++);
-        addFormField(formPanel, "Branch:", branchComboBox, gbc, row++);
-        
-        gbc.gridx = 1;
-        gbc.gridy = row++;
-        formPanel.add(branchInfoLabel, gbc);
+        addFormField(formPanel, "HS Percentage:", hsPercentageField, gbc, row++);
 
-        addFormField(formPanel, "Admission Semester:", semesterComboBox, gbc, row++);
-
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 15));
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
         actionPanel.setOpaque(false);
+        JButton backButton = new JButton("Back");
         JButton admitButton = new JButton("Admit Student");
         JButton clearButton = new JButton("Clear Form");
+        styleButton(backButton);
         styleButton(admitButton);
         styleButton(clearButton);
+        backButton.addActionListener(e -> showAdmissionStep("branch", "Step 3: Select Branch",
+                getSelectedCollegeName() + " | " + semesterComboBox.getSelectedItem()));
         admitButton.addActionListener(this::handleAdmission);
         clearButton.addActionListener(e -> clearAdmissionForm());
+        actionPanel.add(backButton);
         actionPanel.add(admitButton);
         actionPanel.add(clearButton);
 
@@ -269,18 +442,50 @@ public class AdmissionPortalUI extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         formPanel.add(actionPanel, gbc);
 
-        centerWrapper.add(formPanel);
+        return wrapWizardCard(formPanel);
+    }
 
-        admissionResultArea = new JTextArea(6, 0);
-        admissionResultArea.setEditable(false);
-        admissionResultArea.setBackground(new Color(252, 252, 252));
-        JScrollPane resultScroll = new JScrollPane(admissionResultArea);
-        resultScroll.setBorder(BorderFactory.createTitledBorder("Status & Log"));
+    private JPanel createWizardCard() {
+        JPanel formPanel = new RoundedPanel(new GridBagLayout(), Color.WHITE, new Color(220, 230, 240), 16);
+        formPanel.setPreferredSize(new Dimension(620, 380));
+        formPanel.setBorder(new EmptyBorder(30, 35, 30, 35));
+        return formPanel;
+    }
 
-        mainPanel.add(centerWrapper, BorderLayout.CENTER);
-        mainPanel.add(resultScroll, BorderLayout.SOUTH);
+    private JPanel wrapWizardCard(JPanel card) {
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(card);
+        return wrapper;
+    }
 
-        return mainPanel;
+    private GridBagConstraints createGbc(int x, int y, double weightx) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = x;
+        gbc.gridy = y;
+        gbc.insets = new Insets(12, 12, 12, 12);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = weightx;
+        return gbc;
+    }
+
+    private GridBagConstraints createButtonGbc(int row) {
+        GridBagConstraints gbc = createGbc(0, row, 1.0);
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        return gbc;
+    }
+
+    private void showAdmissionStep(String cardName, String title, String selection) {
+        admissionStepTitleLabel.setText(title);
+        admissionSelectionLabel.setText(selection);
+        admissionStepLayout.show(admissionStepPanel, cardName);
+        if (admissionResultScrollPane != null) {
+            admissionResultScrollPane.setVisible("details".equals(cardName));
+            admissionResultScrollPane.getParent().revalidate();
+        }
+        updateBranchInfo();
     }
 
     private void addFormField(JPanel panel, String label, JComponent component, GridBagConstraints gbc, int row) {
@@ -368,11 +573,11 @@ public class AdmissionPortalUI extends JFrame {
         controlPanel.add(filterPanel, BorderLayout.WEST);
         controlPanel.add(studentCountLabel, BorderLayout.EAST);
 
-        String[] columns = {"ID", "Name", "Age", "Gender", "College", "Branch", "Semester", "Admn No.", "Action"};
+        String[] columns = {"ID", "Name", "Age", "Gender", "HS %", "College", "Branch", "Semester", "Admn No.", "Action"};
         studentsTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { 
-                return column == 8; // Only Action column is editable for the button
+                return column == 9; // Only Action column is editable for the button
             }
         };
         studentsTable = new JTable(studentsTableModel);
@@ -469,6 +674,7 @@ public class AdmissionPortalUI extends JFrame {
             int id = Integer.parseInt(idField.getText().trim());
             String name = nameField.getText().trim();
             int age = Integer.parseInt(ageField.getText().trim());
+            double hsPercentage = Double.parseDouble(hsPercentageField.getText().trim());
             String gender = (String) genderComboBox.getSelectedItem();
             
             int collegeIdx = collegeComboBox.getSelectedIndex();
@@ -479,30 +685,70 @@ public class AdmissionPortalUI extends JFrame {
             
             String semester = (String) semesterComboBox.getSelectedItem();
 
-            Student student = new Student(id, name, age, gender, college.getCollegeName(), branch.getBranchName(), semester);
+            Student student = new Student(id, name, age, gender, hsPercentage, college.getCollegeName(), branch.getBranchName(), semester);
             
             boolean success = admissionService.processAdmission(student, branch);
             if (success) {
-                showResult("SUCCESS: Admission processed for " + name + " (ID: " + id + ")\n" +
-                          "Admission Number: " + student.getAdmissionNumber() + "\n" +
-                          "College: " + college.getCollegeName() + "\n" +
-                          "Branch: " + branch.getBranchName() + "\n" +
-                          "Semester: " + semester, SUCCESS_COLOR);
+                String successMessage = "Admission Successful!\n\n" +
+                        "Name: " + name + "\n" +
+                        "Student ID: " + id + "\n" +
+                        "Admission Number: " + student.getAdmissionNumber() + "\n" +
+                        "HS Percentage: " + String.format("%.2f", hsPercentage) + "\n" +
+                        "College: " + college.getCollegeName() + "\n" +
+                        "Branch: " + branch.getBranchName() + "\n" +
+                        "Semester: " + semester;
+
+                showResult(successMessage, SUCCESS_COLOR);
+                showAdmissionSuccessDialog(name, id, student.getAdmissionNumber(), hsPercentage,
+                        college.getCollegeName(), branch.getBranchName(), semester);
                 refreshStudentsTable();
                 updateBranchInfo();
+                updateAdmissionBranchTable();
                 handleBranchCapacity();
                 clearAdmissionFormFields();
+                showAdmissionStep("college", "Step 1: Select College", " ");
+                mainTabs.setSelectedIndex(0);
             } else {
                 showResult("FAILED: Admission could not be processed.\nReason: Possible duplicate ID or no seats available in selected semester.", ERROR_COLOR);
             }
         } catch (NumberFormatException e) {
-            showResult("ERROR: Invalid numeric format in ID or Age.", ERROR_COLOR);
+            showResult("ERROR: Invalid numeric format in ID, Age, or HS Percentage.", ERROR_COLOR);
         }
     }
 
+    private void showAdmissionSuccessDialog(String name, int id, int admissionNumber, double hsPercentage,
+                                            String college, String branch, String semester) {
+        JPanel panel = new RoundedPanel(new BorderLayout(15, 15), new Color(235, 255, 244), new Color(0, 150, 80), 18);
+        panel.setBorder(new EmptyBorder(24, 30, 24, 30));
+        panel.setPreferredSize(new Dimension(480, 320));
+
+        JLabel title = new JLabel("Admission Successful!", SwingConstants.CENTER);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        title.setForeground(SUCCESS_COLOR);
+
+        JTextArea details = new JTextArea();
+        details.setEditable(false);
+        details.setOpaque(false);
+        details.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        details.setForeground(new Color(30, 90, 55));
+        details.setText(
+                "Name: " + name + "\n" +
+                "Student ID: " + id + "\n" +
+                "Admission Number: " + admissionNumber + "\n" +
+                "HS Percentage: " + String.format("%.2f", hsPercentage) + "\n" +
+                "College: " + college + "\n" +
+                "Branch: " + branch + "\n" +
+                "Semester: " + semester
+        );
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(details, BorderLayout.CENTER);
+        JOptionPane.showMessageDialog(this, panel, "Admission Successful", JOptionPane.PLAIN_MESSAGE);
+    }
+
     private void setupTableAction(JTable table) {
-        table.getColumnModel().getColumn(8).setCellRenderer(new TableButtonRenderer());
-        table.getColumnModel().getColumn(8).setCellEditor(new TableButtonEditor(new JCheckBox()));
+        table.getColumnModel().getColumn(9).setCellRenderer(new TableButtonRenderer());
+        table.getColumnModel().getColumn(9).setCellEditor(new TableButtonEditor(new JCheckBox()));
     }
 
     // --- Inner classes for Table Button ---
@@ -582,6 +828,32 @@ public class AdmissionPortalUI extends JFrame {
         }
     }
 
+    class RoundedPanel extends JPanel {
+        private final Color fillColor;
+        private final Color borderColor;
+        private final int radius;
+
+        RoundedPanel(LayoutManager layout, Color fillColor, Color borderColor, int radius) {
+            super(layout);
+            this.fillColor = fillColor;
+            this.borderColor = borderColor;
+            this.radius = radius;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fillColor);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.setColor(borderColor);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
     private void handleViewStudent() {
         String idText = searchIdField.getText().trim();
         if (idText.isEmpty()) return;
@@ -598,6 +870,8 @@ public class AdmissionPortalUI extends JFrame {
                 sb.append(String.format("%-18s: %s\n", "Name", s.getName()));
                 sb.append(String.format("%-18s: %d\n", "Age", s.getAge()));
                 sb.append(String.format("%-18s: %s\n", "Gender", s.getGender()));
+                sb.append(String.format("%-18s: %s\n", "HS Percentage",
+                        s.getHsPercentage() > 0 ? String.format("%.2f", s.getHsPercentage()) : "Not recorded"));
                 sb.append("\nACADEMIC DETAILS\n");
                 sb.append("----------------\n");
                 sb.append(String.format("%-18s: %s\n", "College", s.getCollegeName()));
@@ -652,6 +926,7 @@ public class AdmissionPortalUI extends JFrame {
         for (Student s : all) {
             studentsTableModel.addRow(new Object[]{
                 s.getStudentId(), s.getName(), s.getAge(), s.getGender(),
+                s.getHsPercentage() > 0 ? String.format("%.2f", s.getHsPercentage()) : "-",
                 s.getCollegeName(), s.getBranchName(), s.getSemester(), s.getAdmissionNumber(),
                 "Delete"
             });
@@ -678,10 +953,35 @@ public class AdmissionPortalUI extends JFrame {
         updateBranchInfo();
     }
 
+    private void updateAdmissionBranchTable() {
+        if (admissionBranchTableModel == null || collegeComboBox == null) return;
+        admissionBranchTableModel.setRowCount(0);
+        int collegeIndex = collegeComboBox.getSelectedIndex();
+        if (collegeIndex < 0) return;
+
+        String semesterText = (String) semesterComboBox.getSelectedItem();
+        int semesterNumber = semesterText != null && semesterText.contains("1") ? 1 : 3;
+        admissionBranchTableModel.setColumnIdentifiers(new String[]{
+                "Branch", semesterText + " Free Seats", semesterText + " Total Capacity"
+        });
+        if (admissionBranchTable != null) {
+            styleTable(admissionBranchTable);
+        }
+
+        for (Branch branch : colleges.get(collegeIndex).getBranches()) {
+            Semester semester = branch.getSemesterByNumber(semesterNumber);
+            admissionBranchTableModel.addRow(new Object[]{
+                    branch.getBranchName(),
+                    semester.getRemainingSeats(),
+                    semester.getTotalCapacity()
+            });
+        }
+    }
+
     private void updateBranchInfo() {
         int cIdx = collegeComboBox.getSelectedIndex();
         int bIdx = branchComboBox.getSelectedIndex();
-        if (cIdx < 0 || bIdx < 0) return;
+        if (branchInfoLabel == null || semesterComboBox == null || cIdx < 0 || bIdx < 0) return;
 
         Branch b = colleges.get(cIdx).getBranches().get(bIdx);
         String semStr = (String) semesterComboBox.getSelectedItem();
@@ -694,15 +994,31 @@ public class AdmissionPortalUI extends JFrame {
         }
     }
 
+    private String getSelectedCollegeName() {
+        Object selected = collegeComboBox.getSelectedItem();
+        return selected == null ? "" : selected.toString();
+    }
+
+    private String getSelectedBranchName() {
+        Object selected = branchComboBox.getSelectedItem();
+        return selected == null ? "" : selected.toString();
+    }
+
     private void showResult(String msg, Color color) {
         admissionResultArea.setText(msg);
         admissionResultArea.setForeground(color);
+        if (admissionResultScrollPane != null) {
+            admissionResultScrollPane.setVisible(true);
+            admissionResultScrollPane.getParent().revalidate();
+        }
     }
 
     private void clearAdmissionForm() {
         idField.setText("");
         nameField.setText("");
         ageField.setText("");
+        genderComboBox.setSelectedIndex(0);
+        hsPercentageField.setText("");
         admissionResultArea.setText("");
         updateBranchInfo();
     }
@@ -711,16 +1027,21 @@ public class AdmissionPortalUI extends JFrame {
         idField.setText("");
         nameField.setText("");
         ageField.setText("");
+        genderComboBox.setSelectedIndex(0);
+        hsPercentageField.setText("");
     }
 
     private Optional<String> validateInputs() {
         String idText = idField.getText().trim();
         String name = nameField.getText().trim();
         String ageText = ageField.getText().trim();
+        String hsText = hsPercentageField.getText().trim();
         
         if (idText.isEmpty()) return Optional.of("Student ID is required.");
         if (name.isEmpty()) return Optional.of("Student Name is required.");
         if (ageText.isEmpty()) return Optional.of("Age is required.");
+        if (genderComboBox.getSelectedIndex() == 0) return Optional.of("Please select a gender.");
+        if (hsText.isEmpty()) return Optional.of("HS Percentage is required.");
         
         try {
             int id = Integer.parseInt(idText);
@@ -735,6 +1056,14 @@ public class AdmissionPortalUI extends JFrame {
             if (age < 15 || age > 45) return Optional.of("Age must be between 15 and 45.");
         } catch (NumberFormatException e) {
             return Optional.of("Age must be a valid number.");
+        }
+
+        try {
+            double hsPercentage = Double.parseDouble(hsText);
+            if (hsPercentage < 0 || hsPercentage > 100) return Optional.of("HS Percentage must be between 0 and 100.");
+            if (hsPercentage < 45) return Optional.of("Admission not allowed. HS Percentage must be at least 45.");
+        } catch (NumberFormatException e) {
+            return Optional.of("HS Percentage must be a valid number.");
         }
         
         return Optional.empty();
